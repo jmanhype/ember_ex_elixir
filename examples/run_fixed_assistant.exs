@@ -1,6 +1,9 @@
 # Script to run the EmberEx Assistant with real OpenAI models
 # This version modifies the Assistant module's graph directly to use the correct model format
 
+# Load required modules
+Code.require_file(Path.join([Path.dirname(__DIR__), "lib", "ember_ex", "models", "models.ex"]))
+
 defmodule AssistantFix do
   @moduledoc """
   Provides fixes for the EmberEx.Examples.Assistant module to work with real OpenAI models.

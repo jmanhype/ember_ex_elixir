@@ -1,6 +1,9 @@
 # Script to run the EmberEx Assistant with real OpenAI models
 # This version creates a custom assistant that works with real OpenAI models
 
+# Load required modules
+Code.require_file(Path.join([Path.dirname(__DIR__), "lib", "ember_ex", "models", "models.ex"]))
+
 defmodule FixedAssistant do
   @moduledoc """
   A fixed version of the assistant that works with real OpenAI models.

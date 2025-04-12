@@ -8,17 +8,7 @@ defmodule EmberEx.Examples.AssistantTest do
   alias EmberEx.Examples.Assistant
   alias EmberEx.Operators.Operator
   
-  # Import test helpers if available
-  if Mix.env() == :test do
-    import ExUnit.CaptureLog
-    
-    if Version.match?(System.version(), ">= 1.8.0") do
-      # Import these only if we're in Elixir 1.8+
-      if Code.ensure_loaded?(ExUnit.Assertions) do
-        import ExUnit.Assertions, only: [assert_receive: 2]
-      end
-    end
-  end
+  # Test helpers were previously imported here but have been removed as they're unused
   
   # Mock the model callable to avoid actual API calls during tests
   defmodule MockModel do

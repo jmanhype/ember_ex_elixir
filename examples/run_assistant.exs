@@ -8,8 +8,11 @@
 api_key = System.get_env("OPENAI_API_KEY") || "ENV_VAR_NOT_SET"
 System.put_env("OPENAI_API_KEY", api_key)
 
+# Load required modules
+Code.require_file(Path.join([Path.dirname(__DIR__), "lib", "ember_ex", "models", "models.ex"]))
+
 # Start the application
-Application.ensure_all_started(:ember_ex)
+{:ok, _} = Application.ensure_all_started(:ember_ex)
 
 # Patch the model resolution to use a known working model
 defmodule AssistantPatch do

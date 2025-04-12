@@ -196,10 +196,40 @@ mix test
 
 ## Advanced Features
 
+### Distributed Computing with Mesh Transform
+
+EmberEx includes a powerful Mesh transform module for distributed computation across multiple devices:
+
+```elixir
+# Create a mesh transform with data parallelism strategy
+mesh = EmberEx.XCS.Transforms.Mesh.new(strategy: :data, devices: 4)
+
+# Apply the transform to an operator
+distributed_op = EmberEx.XCS.Transforms.Mesh.apply(mesh, my_operator)
+
+# Partition data for distributed processing
+{partitions, metadata} = EmberEx.XCS.Transforms.Mesh.partition_data(mesh, data)
+
+# Process each partition (normally done across devices)
+results = Enum.map(partitions, fn partition ->
+  process_partition(partition)
+end)
+
+# Combine results back together
+final_result = EmberEx.XCS.Transforms.Mesh.combine_results(mesh, {results, metadata})
+```
+
+The Mesh transform supports three sharding strategies:
+
+- **Data Parallelism**: Splits input data across devices, each running a copy of the model
+- **Model Parallelism**: Splits model parameters across devices, each processing the same input
+- **Pipeline Parallelism**: Splits model into stages assigned to different devices
+
 ### Recent Enhancements
 
 **April 2025 Updates**:
 
+- **Mesh Transform Implementation**: Added device mesh-based sharding for efficient distributed computation
 - **Execution Engine Enhancement**: Improved handling of specialized LLM graphs that preserves stochastic operations while optimizing surrounding deterministic functions
 - **Analysis Overhead Reduction**: Profiling infrastructure to identify and minimize computational costs during optimization phases
 - **Intelligent Partial Caching**: Smart caching strategies that identify cacheable components based on determinism analysis

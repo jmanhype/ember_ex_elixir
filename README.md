@@ -19,7 +19,9 @@ Add EmberEx to your list of dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:ember_ex, "~> 0.1.0"}
+    {:ember_ex, "~> 0.1.0"},
+    {:instructor, "~> 1.0"},  # For structured outputs
+    {:httpoison, "~> 2.0"}    # For API calls
   ]
 end
 ```
@@ -130,6 +132,37 @@ result = EmberEx.XCS.ExecutionEngine.execute(graph, %{text: "Hello, world!"})
 #      "uppercase_french.uppercase_french" => "BONJOUR, MONDE!"
 #    }
 ```
+
+## OpenAI Integration
+
+EmberEx provides first-class support for OpenAI models through the LLMOperator:
+
+```elixir
+# Configure API key (set OPENAI_API_KEY environment variable)
+EmberEx.Config.put_in([:models, :providers, :openai, :api_key], System.get_env("OPENAI_API_KEY"))
+
+# Create an OpenAI operator
+llm_op = EmberEx.Operators.LLMOperator.new(
+  "gpt-4o",
+  "Translate the following text to French: {input}",
+  :text,
+  :french_text
+)
+
+# Call with inputs
+result = EmberEx.Operators.Operator.call(llm_op, %{text: "Hello world"})
+# => %{text: "Hello world", french_text: "Bonjour le monde"}
+```
+
+### Key Features:
+- Structured output validation
+- Automatic prompt templating
+- Error handling for API calls
+- Support for all OpenAI chat models
+
+### Requirements:
+- Set `OPENAI_API_KEY` environment variable
+- Add `instructor` and `httpoison` to your dependencies
 
 ## JIT Optimization System
 

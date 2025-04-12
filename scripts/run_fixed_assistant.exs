@@ -145,8 +145,10 @@ end
 api_key = System.get_env("OPENAI_API_KEY")
 if is_nil(api_key) || api_key == "" do
   IO.puts("\n⚠️ Warning: OPENAI_API_KEY environment variable not set.")
-  IO.puts("Setting a temporary API key for testing...")
-  System.put_env("OPENAI_API_KEY", "YOUR_OPENAI_API_KEY_HERE")
+  IO.puts("Please set your API key before running this script:")
+  IO.puts("export OPENAI_API_KEY=your_actual_api_key")
+  IO.puts("\nExiting script as no API key is available.")
+  System.halt(1)
 end
 
 # Start the application

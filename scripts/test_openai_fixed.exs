@@ -27,9 +27,9 @@ defmodule OpenAITests do
       IO.puts("Please set your API key in the environment before running tests.")
       IO.puts("Example: export OPENAI_API_KEY=your_api_key")
       
-      # For testing purposes, set a valid API key
-      IO.puts("\n🔑 Setting a temporary API key for testing...")
-      System.put_env("OPENAI_API_KEY", "YOUR_OPENAI_API_KEY_HERE")
+      # Exit since we need a valid API key
+      IO.puts("\n❌ Exiting test suite - API key required.")
+      System.halt(1)
     end
     
     # Define the model to use - use gpt-3.5-turbo for affordability during testing

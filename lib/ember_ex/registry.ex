@@ -3,17 +3,22 @@ defmodule EmberEx.Registry do
   Registry for EmberEx components.
   
   Provides a central registry for discovering and accessing operators,
-  model providers, and other extension components.
+  model providers, models, and other extension components.
+  
+  The registry supports auto-discovery of components via module attributes
+  and provides a comprehensive API for registering and finding components.
   """
   
   use GenServer
   require Logger
   
-  @type component_type :: :operators | :providers | :specifications
+  @type component_type :: :operators | :providers | :specifications | :models
   @type registry :: %{
     operators: %{optional(atom()) => module()},
     providers: %{optional(atom()) => module()},
-    specifications: %{optional(atom()) => struct()}
+    specifications: %{optional(atom()) => struct()},
+    models: %{optional(String.t()) => map()},
+    discovery_paths: [String.t()]
   }
   
   @doc """
@@ -33,12 +38,21 @@ defmodule EmberEx.Registry do
   end
   
   @impl true
-  def init(_opts) do
-    {:ok, %{
+  def init(opts) do
+    state = %{
       operators: %{},
       providers: %{},
-      specifications: %{}
-    }}
+      specifications: %{},
+      models: %{},
+      discovery_paths: Keyword.get(opts, :discovery_paths, [])
+    }
+    
+    # Run auto-discovery if enabled
+    if Keyword.get(opts, :auto_discover, false) do
+      send(self(), :perform_discovery)
+    end
+    
+    {:ok, state}
   end
   
   # Client API
@@ -178,6 +192,79 @@ defmodule EmberEx.Registry do
     GenServer.call(__MODULE__, {:list, :specifications})
   end
   
+  @doc """
+  Register a model.
+  
+  ## Parameters
+  
+  - name: The name of the model (e.g., "openai/gpt-4")
+  - model_info: Map containing model information
+  
+  ## Returns
+  
+  `:ok` if successful
+  """
+  @spec register_model(String.t(), map()) :: :ok
+  def register_model(name, model_info) do
+    GenServer.call(__MODULE__, {:register, :models, name, model_info})
+  end
+
+  @doc """
+  Find a model by name.
+  
+  ## Parameters
+  
+  - name: The name of the model to find (e.g., "openai/gpt-4")
+  
+  ## Returns
+  
+  The model info map or nil if not found
+  """
+  @spec find_model(String.t()) :: map() | nil
+  def find_model(name) do
+    GenServer.call(__MODULE__, {:find, :models, name})
+  end
+
+  @doc """
+  List all registered models.
+  
+  ## Returns
+  
+  A map of model names to info maps
+  """
+  @spec list_models() :: %{optional(String.t()) => map()}
+  def list_models do
+    GenServer.call(__MODULE__, {:list, :models})
+  end
+
+  @doc """
+  Initiates auto-discovery of components in the configured discovery paths.
+  
+  ## Returns
+  
+  `:ok` if the discovery process was initiated
+  """
+  @spec discover() :: :ok
+  def discover do
+    GenServer.cast(__MODULE__, :perform_discovery)
+  end
+
+  @doc """
+  Set the discovery paths for auto-discovery.
+  
+  ## Parameters
+  
+  - paths: List of paths to scan for components
+  
+  ## Returns
+  
+  `:ok` if successful
+  """
+  @spec set_discovery_paths([String.t()]) :: :ok
+  def set_discovery_paths(paths) do
+    GenServer.call(__MODULE__, {:set_discovery_paths, paths})
+  end
+
   # Server callbacks
   
   @impl true
@@ -196,5 +283,104 @@ defmodule EmberEx.Registry do
   @impl true
   def handle_call({:list, type}, _from, state) do
     {:reply, state[type], state}
+  end
+
+  @impl true
+  def handle_call({:set_discovery_paths, paths}, _from, state) do
+    {:reply, :ok, %{state | discovery_paths: paths}}
+  end
+
+  @impl true
+  def handle_cast(:perform_discovery, state) do
+    updated_state = perform_discovery(state)
+    {:noreply, updated_state}
+  end
+
+  @impl true
+  def handle_info(:perform_discovery, state) do
+    updated_state = perform_discovery(state)
+    {:noreply, updated_state}
+  end
+
+  # Private helper functions
+
+  defp perform_discovery(state) do
+    Logger.info("Starting auto-discovery of EmberEx components")
+    
+    # Discover operators with @ember_operator attribute
+    operators = discover_components_by_attribute(:ember_operator, :operators)
+    
+    # Discover models with @ember_model attribute
+    models = discover_models()
+    
+    # Discover providers with @ember_provider attribute
+    providers = discover_components_by_attribute(:ember_provider, :providers)
+    
+    # Merge discovered components with existing state
+    %{
+      state |
+      operators: Map.merge(state.operators, operators),
+      models: Map.merge(state.models, models),
+      providers: Map.merge(state.providers, providers)
+    }
+  end
+
+  defp discover_components_by_attribute(attribute, _type) do
+    Logger.debug("Discovering components with @#{attribute} attribute")
+    
+    # Get all modules in the application
+    for {
+      module, beam
+    } <- :code.all_loaded(),
+        is_atom(module),
+        is_list(:beam_lib.chunks(beam, [:attributes])),
+        {:ok, {_, attributes}} <- [:beam_lib.chunks(beam, [:attributes])],
+        attribute_values <- Keyword.get_values(attributes, attribute),
+        attribute_value <- List.wrap(attribute_values),
+        module_name = get_module_name(module, attribute_value),
+        reduce: %{} do
+      acc -> Map.put(acc, module_name, module)
+    end
+  end
+
+  defp discover_models do
+    Logger.debug("Discovering models")
+    
+    # Get all modules with @ember_model attribute
+    for {
+      module, beam
+    } <- :code.all_loaded(),
+        is_atom(module),
+        is_list(:beam_lib.chunks(beam, [:attributes])),
+        {:ok, {_, attributes}} <- [:beam_lib.chunks(beam, [:attributes])],
+        model_specs <- Keyword.get_values(attributes, :ember_model),
+        model_spec <- List.wrap(model_specs),
+        reduce: %{} do
+      acc -> 
+        case model_spec do
+          {name, info} when is_binary(name) and is_map(info) ->
+            Map.put(acc, name, info)
+          _ ->
+            Logger.warning("Invalid @ember_model format in #{inspect(module)}")
+            acc
+        end
+    end
+  end
+
+  defp get_module_name(module, attribute_value) do
+    case attribute_value do
+      name when is_atom(name) -> name
+      {name, _} when is_atom(name) -> name
+      _ -> module_to_name(module)
+    end
+  end
+
+  defp module_to_name(module) do
+    module
+    |> Atom.to_string()
+    |> String.split(".")
+    |> List.last()
+    |> Macro.underscore()
+    |> String.to_atom()
   end
 end

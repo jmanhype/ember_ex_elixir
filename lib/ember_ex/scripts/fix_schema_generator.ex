@@ -1,4 +1,4 @@
-defmodule EmberEx.Specifications.SchemaGeneratorFix do
+defmodule EmberEx.Scripts.FixSchemaGenerator do
   @moduledoc """
   Fix for the SchemaGenerator module.
   """

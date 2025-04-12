@@ -3,7 +3,8 @@ defmodule EmberEx.Application do
   The EmberEx Application module.
   
   This module is responsible for starting the application and its supervision tree,
-  including the registry, usage tracking services, and other core components.
+  including the registry, usage tracking services, JIT optimization system,
+  and other core components.
   """
   
   use Application
@@ -13,8 +14,8 @@ defmodule EmberEx.Application do
   Start the EmberEx application.
   
   This function starts the supervision tree for the application,
-  initializes the component registry, and loads configuration
-  from environment variables.
+  initializes the component registry, loads configuration
+  from environment variables, and starts the JIT optimization system.
   """
   @spec start(any(), any()) :: {:ok, pid()} | {:error, term()}
   def start(_type, _args) do
@@ -27,6 +28,9 @@ defmodule EmberEx.Application do
       
       # Start the UsageService if usage tracking is enabled
       usage_service_spec(),
+      
+      # Start the JIT Cache server
+      {EmberEx.XCS.JIT.Cache, []},
       
       # Start any other core services
       {EmberEx.Models.Config, []}
@@ -50,7 +54,8 @@ defmodule EmberEx.Application do
   Initialize the EmberEx framework after startup.
   
   This performs tasks that should happen after the supervision tree
-  is up and running, such as discovering and registering components.
+  is up and running, such as discovering and registering components
+  and starting the JIT optimization system.
   """
   @spec init_registry() :: :ok
   def init_registry do
@@ -59,6 +64,14 @@ defmodule EmberEx.Application do
     # Discover providers and operators
     EmberEx.Discovery.discover_providers()
     EmberEx.Discovery.discover_operators()
+    
+    # Initialize the JIT optimization system
+    case EmberEx.XCS.JIT.Init.start() do
+      :ok ->
+        Logger.info("JIT optimization system initialized")
+      {:error, reason} ->
+        Logger.error("Failed to initialize JIT optimization system: #{inspect(reason)}")
+    end
     
     Logger.info("EmberEx initialization complete")
     :ok

@@ -1,8 +1,17 @@
 # Simple test script for EmberEx with a real OpenAI model
 # This script creates a custom MapOperator that directly interacts with the OpenAI API
 
-# Set the OpenAI API key
-System.put_env("OPENAI_API_KEY", "YOUR_OPENAI_API_KEY_HERE")
+# Ensure API key is set
+api_key = System.get_env("OPENAI_API_KEY")
+if is_nil(api_key) || api_key == "" do
+  IO.puts("\n⚠️ Warning: OPENAI_API_KEY environment variable not set.")
+  IO.puts("Please set your API key in the environment before running tests.")
+  IO.puts("Example: export OPENAI_API_KEY=your_api_key")
+  
+  # Exit since we need a valid API key
+  IO.puts("\n❌ Exiting test suite - API key required.")
+  System.halt(1)
+end
 
 IO.puts("\n🚀 Testing EmberEx with real OpenAI models")
 IO.puts("=========================================")

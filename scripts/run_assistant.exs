@@ -2,7 +2,11 @@
 # Applies necessary fixes to make the Assistant work correctly
 
 # Set the OpenAI API key
-System.put_env("OPENAI_API_KEY", "YOUR_OPENAI_API_KEY_HERE")
+# IMPORTANT: Replace this with your actual API key before running
+# or set it in your environment variables using:
+# export OPENAI_API_KEY=your_actual_key
+api_key = System.get_env("OPENAI_API_KEY") || "ENV_VAR_NOT_SET"
+System.put_env("OPENAI_API_KEY", api_key)
 
 # Start the application
 Application.ensure_all_started(:ember_ex)

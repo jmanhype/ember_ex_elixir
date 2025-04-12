@@ -29,6 +29,10 @@ defmodule EmberEx.MixProject do
       # HTTP clients
       {:finch, "~> 0.16"},
       {:httpoison, "~> 2.1"},
+      # Metrics and monitoring
+      {:prometheus_ex, "~> 3.0"},
+      {:prometheus_plugs, "~> 1.1"},
+      {:plug_cowboy, "~> 2.6"},
       # Testing
       {:ex_doc, "~> 0.29", only: :dev, runtime: false},
       {:dialyxir, "~> 1.3", only: [:dev], runtime: false},

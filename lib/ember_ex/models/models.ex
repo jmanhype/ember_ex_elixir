@@ -204,7 +204,22 @@ defmodule EmberEx.Models do
   """
   @spec log_model_call(String.t(), String.t(), String.t()) :: :ok
   def log_model_call(provider, model_id, prompt) do
-    truncated_prompt = if String.length(prompt) > 100, do: String.slice(prompt, 0, 97) <> "...", else: prompt
+    # Handle both string prompts and map/config prompts
+    truncated_prompt = case prompt do
+      prompt when is_binary(prompt) ->
+        if String.length(prompt) > 100, do: String.slice(prompt, 0, 97) <> "...", else: prompt
+      prompt when is_map(prompt) ->
+        # Extract content from messages if available
+        content = case get_in(prompt, [:messages]) do
+          [%{content: content} | _] when is_binary(content) -> content
+          [%{"content" => content} | _] when is_binary(content) -> content
+          _ -> inspect(prompt)
+        end
+        if String.length(content) > 100, do: String.slice(content, 0, 97) <> "...", else: content
+      _ ->
+        inspect(prompt)
+    end
+    
     Logger.debug("Calling #{provider} model #{model_id} with prompt: #{truncated_prompt}")
     :ok
   end

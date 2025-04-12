@@ -85,17 +85,31 @@ defmodule EmberEx.Operators.LLMOperator do
     })
     
     # Execute the model
-    case operator.model.(model_args) do
+    result = operator.model.(model_args)
+    
+    # Handle different result formats
+    case result do
       {:ok, response} ->
-        # Return the response
+        # Handle tuple response format
         response
         
       {:error, reason} ->
-        # Log the error
+        # Handle error tuple format
         Logger.error("LLMOperator execution failed: #{inspect(reason)}")
-        
-        # Re-raise the error
         raise "LLMOperator execution failed: #{inspect(reason)}"
+        
+      %{result: content} when is_binary(content) ->
+        # Handle map with result key format
+        %{content: content}
+        
+      result when is_map(result) ->
+        # Handle map response
+        result
+        
+      other ->
+        # Handle unexpected formats
+        Logger.error("LLMOperator received unexpected response format: #{inspect(other)}")
+        %{content: inspect(other)}
     end
   end
   

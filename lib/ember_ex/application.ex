@@ -25,15 +25,21 @@ defmodule EmberEx.Application do
     children = [
       # Start the Registry
       {EmberEx.Registry, []},
-      
+
       # Start the UsageService if usage tracking is enabled
       usage_service_spec(),
-      
+
       # Start the JIT Cache server
       {EmberEx.XCS.JIT.Cache, []},
-      
+
+      # Start Finch for outbound HTTP requests (Gemini integration)
+      {Finch, name: EmberExFinch},
+
       # Start any other core services
-      {EmberEx.Models.Config, []}
+      {EmberEx.Models.Config, []},
+      # Start the A2A Plug.Cowboy server (DISABLED for local pipeline runs)
+      # To enable the HTTP A2A server, uncomment the following line:
+      # {Plug.Cowboy, scheme: :http, plug: EmberEx.A2ARouter, options: [port: 4100]}
     ]
     |> Enum.reject(&is_nil/1)
 

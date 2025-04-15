@@ -253,15 +253,39 @@ defmodule EmberEx.Operators.ParallelOperator do
   A map of output values
   """
   @impl true
+  @doc """
+  Executes all sub-operators in parallel and merges their results into the input map.
+  Waits up to 20 seconds for all tasks to complete (increased timeout for slow MCP servers).
+
+  ## Parameters
+  - operator: The ParallelOperator struct
+  - inputs: Input map to be processed
+
+  ## Returns
+  - Map with merged outputs from all sub-operators
+  """
+  @spec forward(t(), map()) :: map()
+  @doc """
+  Executes all sub-operators in parallel and merges their results into the input map.
+  Waits up to 60 seconds for all tasks to complete (increased timeout for slow MCP servers).
+  Logs before and after each task, and before merging results.
+  """
   def forward(%__MODULE__{} = operator, inputs) do
-    # Execute all operators in parallel
+    require Logger
+    # Execute all operators in parallel with logging
     tasks = Enum.map(operator.operators, fn op ->
-      Task.async(fn -> EmberEx.Operators.Operator.call(op, inputs) end)
+      Logger.debug("[ParallelOperator] Spawning task for operator: #{inspect(op)} with inputs: #{inspect(inputs)}")
+      Task.async(fn ->
+        result = EmberEx.Operators.Operator.call(op, inputs)
+        Logger.debug("[ParallelOperator] Task result for operator #{inspect(op)}: #{inspect(result)}")
+        result
+      end)
     end)
-    
-    # Wait for all tasks to complete
-    results = Task.await_many(tasks)
-    
+
+    # Wait for all tasks to complete, up to 60 seconds
+    results = Task.await_many(tasks, 60_000)
+    Logger.debug("[ParallelOperator] All task results: #{inspect(results)}")
+
     # Merge all results with the original inputs
     Enum.reduce(results, inputs, &Map.merge/2)
   end
